@@ -29,7 +29,7 @@ import yaml
 count = 0
 lines = 0
 
-settings=yaml.load(open('settings.yml'))
+settings=yaml.load(open('settings.yml'),Loader=yaml.FullLoader)
 outf = open(settings["output_file"],"w")
 logf = open(settings["log_file"],"w")
 
@@ -61,6 +61,7 @@ def rm_attr(chunk,attribute):
 
 for chunk in read_chunks():
   count += 1
+  full_dn=""
   dn=""
   dn_r = re.search(r'^(dn: (.*))$', chunk, re.MULTILINE )
   if dn_r is not None:
@@ -68,17 +69,32 @@ for chunk in read_chunks():
     dn=dn_r.group(2)
 
   logs("Processing: %s" % (full_dn) )
+
+  if settings["clean_empty"] is not None:
+    if isinstance(settings["clean_empty"], str) and  settings["clean_empty"].lower() == "all":
+      atrs = re.search(r'^(\w*):$', chunk, flags=re.MULTILINE|re.DOTALL)
+      while atrs is not None:
+        for atr in atrs.groups():
+          regex=r"^%s:$" % (atr)
+          sub=re.sub(regex,'',chunk,flags=re.MULTILINE)
+          if sub != chunk:
+            logs(" Empty attribute '%s' removed" % (atr))
+            chunk=sub
+        atrs = re.search(r'^(\w*):$', chunk, flags=re.MULTILINE|re.DOTALL)
+
   for attr in settings["remove_attrs"]:
      chunk=rm_attr(chunk,attr)
 
   if dn in settings["dn_remove_attrs"]:
     for attr in settings["dn_remove_attrs"][dn]:
       chunk = rm_attr(chunk,attr)
-    
-  outf.write(chunk)
-  outf.write("\n")
   
-  if (count % 10 ) == 0:
+  #clean up empty lines before writing
+  chunk="\n".join(filter(bool, chunk.splitlines()))
+  outf.write(chunk)
+  outf.write("\n\n")
+  
+  if (count % 1000 ) == 0:
     print("Chunks processed: %s   Lines read: %s" % (count,lines))
 
 outf.close()
