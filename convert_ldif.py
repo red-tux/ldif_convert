@@ -32,12 +32,29 @@ lines = 0
 #settings=yaml.load(open('settings.yml'),Loader=yaml.FullLoader)
 settings=yaml.load(open('settings.yml'))
 outf = open(settings["output_file"],"w")
-logf = open(settings["log_file"],"w")
 
-def logs(str):
-  global logf
-  logf.write(str)
-  logf.write("\n")
+class Logger:
+  logf = None
+  current_dn = ""
+
+  def __init__(self, logfile):
+    self.logf = open(settings["log_file"],"w")
+
+  def __del__(self):
+    self.logf.close()
+
+  def set_dn(self,dn):
+    self.current_dn=dn
+  
+  def msg(self, str):
+    # To save on log file space, we will only write the DN when there is
+    # an actual message.  current_dn is used as the flag for so that it only
+    # get's written once.
+    if self.current_dn:
+      self.logf.write ("Processing: %s\n" % (self.current_dn) )
+      self.current_dn = ""
+    self.logf.write(str)
+    self.logf.write("\n")
 
 def read_chunks():
   f=open(settings["input_file"])
@@ -53,12 +70,15 @@ def read_chunks():
       chunk_lines += line
 
 def rm_attr(chunk,attribute):
+  global log
   regex=r"^%s:.*$" % (attribute)
   sub=re.sub(regex,'',chunk,flags=re.MULTILINE|re.DOTALL)
   if sub != chunk:
-    logs(" attribute '%s' removed" % (attribute))
+    log.msg(" attribute '%s' removed" % (attribute))
     chunk=sub
   return chunk
+
+log=Logger(settings["log_file"])
 
 for chunk in read_chunks():
   count += 1
@@ -69,7 +89,7 @@ for chunk in read_chunks():
     full_dn=dn_r.group(1)
     dn=dn_r.group(2)
 
-  logs("Processing: %s" % (full_dn) )
+  log.set_dn(full_dn)
 
   if settings["clean_empty"] is not None:
     if isinstance(settings["clean_empty"], str) and  settings["clean_empty"].lower() == "all":
@@ -79,7 +99,7 @@ for chunk in read_chunks():
           regex=r"^%s:$" % (atr)
           sub=re.sub(regex,'',chunk,flags=re.MULTILINE)
           if sub != chunk:
-            logs(" Empty attribute '%s' removed" % (atr))
+            log.msg(" Empty attribute '%s' removed" % (atr))
             chunk=sub
         atrs = re.search(r'^(\w*):$', chunk, flags=re.MULTILINE|re.DOTALL)
 
@@ -99,6 +119,5 @@ for chunk in read_chunks():
     print("Chunks processed: %s   Lines read: %s" % (count,lines))
 
 outf.close()
-logf.close()
 
 print("Chunks processed: %s   Lines read: %s" % (count,lines))
