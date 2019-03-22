@@ -29,7 +29,8 @@ import yaml
 count = 0
 lines = 0
 
-settings=yaml.load(open('settings.yml'),Loader=yaml.FullLoader)
+#settings=yaml.load(open('settings.yml'),Loader=yaml.FullLoader)
+settings=yaml.load(open('settings.yml'))
 outf = open(settings["output_file"],"w")
 logf = open(settings["log_file"],"w")
 
