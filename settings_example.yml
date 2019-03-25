@@ -1,13 +1,8 @@
 input_file: Example.ldif
 output_file: test_out.ldif
 log_file: test_log.out
-clean_empty: all
 remove_attrs:
   - roomnumber
 dn_remove_attrs:
   uid=tlabonte,ou=People,dc=example,dc=com:
     - facsimiletelephonenumber
-schema_regex:
-  timestamp:
-    find: (\d+)z
-    replace: \1Z

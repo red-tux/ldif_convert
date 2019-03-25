@@ -25,6 +25,7 @@
 
 import re
 import yaml
+from sets import Set
 
 count = 0
 lines = 0
@@ -66,10 +67,27 @@ class DN:
     if dn_r is not None:
       self.dn=dn_r.group(1)
     if skip_empty:
-      self.lines=[ x for x in self.lines if re.match(r'^$',x) is not None]
+      self.lines=[ x for x in self.lines if x!="" ]
+
+  def __str__(self):
+    return self.str()
 
   def str(self):
-    return "\n".join(self.lines)
+    return "\n".join(filter(lambda x: x!="", self.lines))
+
+  def atr_map(self,mapfunc):
+    self.lines = map(mapfunc, self.lines)
+    return self.lines
+
+  def atr_filter(self,filterfunc):
+    global log
+    tmp_lines=self.lines
+    # Filter test is true for keeping
+    self.lines=[ x for x in self.lines if not filterfunc(x)]
+    for x in Set(tmp_lines).difference(Set(self.lines)):
+      log.msg(" attribute filtered out:  '%s'" % (x))
+
+    return self.lines
 
 def read_chunks():
   f=open(settings["input_file"])
@@ -84,50 +102,58 @@ def read_chunks():
     else:
       chunk_lines += line
 
-def rm_attr(chunk,attribute):
+def rm_filter(atr,dn):
   global log
-  regex=r"^%s:.*$" % (attribute)
+  regex=r"^%s:" % (atr)
+  dn.filter
   sub=re.sub(regex,'',chunk,flags=re.MULTILINE|re.DOTALL)
   if sub != chunk:
     log.msg(" attribute '%s' removed" % (attribute))
     chunk=sub
   return chunk
 
+def schema_regex(dn_atr):
+  global log
+  for atr in settings["schema_regex"]:
+      regex=r"^%s: " % (atr)
+      if re.search( regex, dn_atr) is not None:
+        log.msg(" Schema regex found '%s'" % (atr))
+        find=r"^%s: %s" % (atr, settings["schema_regex"][atr]["find"])
+        replace="%s: %s" %(atr, settings["schema_regex"][atr]["replace"])
+        # print find
+        # print replace
+        # print
+        dn_atr=re.sub(find,replace,dn_atr)
+  return dn_atr
+
 log=Logger(settings["log_file"])
+
+clean_empty=False
+if settings["clean_empty"] is not None:
+  if isinstance(settings["clean_empty"], str) and  settings["clean_empty"].lower() == "all":
+    clean_empty=True
 
 for chunk in read_chunks():
   count += 1
-  full_dn=""
-  dn=""
-  dn_r = re.search(r'^(dn: (.*))$', chunk, re.MULTILINE )
-  if dn_r is not None:
-    full_dn=dn_r.group(1)
-    dn=dn_r.group(2)
 
-  log.set_dn(full_dn)
-
-  if settings["clean_empty"] is not None:
-    if isinstance(settings["clean_empty"], str) and  settings["clean_empty"].lower() == "all":
-      atrs = re.search(r'^(\w*):$', chunk, flags=re.MULTILINE|re.DOTALL)
-      while atrs is not None:
-        for atr in atrs.groups():
-          regex=r"^%s:$" % (atr)
-          sub=re.sub(regex,'',chunk,flags=re.MULTILINE)
-          if sub != chunk:
-            log.msg(" Empty attribute '%s' removed" % (atr))
-            chunk=sub
-        atrs = re.search(r'^(\w*):$', chunk, flags=re.MULTILINE|re.DOTALL)
+  dn=DN(chunk,skip_empty=clean_empty)
+  log.set_dn(dn.dn)
 
   for attr in settings["remove_attrs"]:
-     chunk=rm_attr(chunk,attr)
+    regex=r"^%s:" % (attr)
+    dn.atr_filter(lambda a: re.search(regex,a) is not None)
 
-  if dn in settings["dn_remove_attrs"]:
-    for attr in settings["dn_remove_attrs"][dn]:
-      chunk = rm_attr(chunk,attr)
+  if dn.dn in settings["dn_remove_attrs"]:
+    for attr in settings["dn_remove_attrs"][dn.dn]:
+      regex=r"^%s:" % (attr)
+      dn.atr_filter(lambda a: re.search(regex,a) is not None)
+
+  if settings["schema_regex"] is not None:
+    for atr in settings["schema_regex"]:
+        dn.atr_map(schema_regex)
   
   #clean up empty lines before writing
-  chunk="\n".join(filter(bool, chunk.splitlines()))
-  outf.write(chunk)
+  outf.write(dn.str())
   outf.write("\n\n")
   
   if (count % 1000 ) == 0:
