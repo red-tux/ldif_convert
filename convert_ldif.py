@@ -56,6 +56,21 @@ class Logger:
     self.logf.write(str)
     self.logf.write("\n")
 
+class DN:
+  lines=[]
+  dn=""
+
+  def __init__(self,chunk,skip_empty=False):
+    self.lines=chunk.splitlines()
+    dn_r = re.search(r'^dn: (.*)$', chunk, re.MULTILINE )
+    if dn_r is not None:
+      self.dn=dn_r.group(1)
+    if skip_empty:
+      self.lines=[ x for x in self.lines if re.match(r'^$',x) is not None]
+
+  def str(self):
+    return "\n".join(self.lines)
+
 def read_chunks():
   f=open(settings["input_file"])
   global lines
