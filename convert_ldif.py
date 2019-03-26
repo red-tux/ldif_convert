@@ -26,6 +26,7 @@
 import re
 import yaml
 from sets import Set
+from timeit import default_timer as timer
 
 count = 0
 lines = 0
@@ -140,6 +141,8 @@ if settings["clean_empty"] is not None:
   if isinstance(settings["clean_empty"], str) and  settings["clean_empty"].lower() == "all":
     clean_empty=True
 
+start_time=timer()
+chunk_start=timer()
 for chunk in read_chunks():
   count += 1
 
@@ -164,8 +167,13 @@ for chunk in read_chunks():
   outf.write("\n\n")
   
   if (count % 1000 ) == 0:
-    print("Chunks processed: %s   Lines read: %s" % (count,lines))
+    chunk_time=timer()-chunk_start
+    cps = 1000/chunk_time
+    print("Chunks processed: %s   Lines read: %s   Elapsed time: %s   CPS:  %s" % (count,lines,chunk_time,cps))
+    chunk_start=timer()
 
 outf.close()
 
-print("Chunks processed: %s   Lines read: %s" % (count,lines))
+total_time=timer()-start_time
+cps = count/chunk_time
+print("Chunks processed: %s   Lines read: %s   Elapsed time: %s   CPS:  %s" % (count,lines,chunk_time,cps))
