@@ -107,7 +107,8 @@ def read_chunks():
   f=open(settings["input_file"])
   global lines
   chunk_lines=""
-  for line in f.readlines():
+  # for line in f.readlines():
+  for line in f:
     lines += 1
     if line == "\n":
       # chunk_lines=re.sub(r'\n ','',chunk_lines,flags=re.MULTILINE|re.DOTALL )
