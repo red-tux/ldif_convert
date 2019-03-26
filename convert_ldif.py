@@ -93,13 +93,13 @@ class DN:
     self.lines = map(mapfunc, self.lines)
     return self.lines
 
-  def atr_filter(self,filterfunc):
+  def line_filter(self,filterfunc):
     global log
     tmp_lines=self.lines
     # Filter test is true for keeping
     self.lines=[ x for x in self.lines if not filterfunc(x)]
     for x in Set(tmp_lines).difference(Set(self.lines)):
-      log.msg(" attribute filtered out:  '%s'" % (x))
+      log.msg(" line filtered out:  '%s'" % (x))
 
     return self.lines
 
@@ -120,16 +120,6 @@ def read_chunks():
   # special case where there is no blank line at the end of the file
   if chunk_lines!="":
     yield chunk_lines
-
-def rm_filter(atr,dn):
-  global log
-  regex=r"^%s:" % (atr)
-  dn.filter
-  sub=re.sub(regex,'',chunk,flags=re.MULTILINE|re.DOTALL)
-  if sub != chunk:
-    log.msg(" attribute '%s' removed" % (attribute))
-    chunk=sub
-  return chunk
 
 def schema_regex(dn_atr):
   global log
@@ -155,20 +145,35 @@ if settings["clean_empty"] is not None:
 start_time=timer()
 chunk_start=timer()
 last_lines = 0
+
+remove_atrs=[]
+remove_lines=[]
+
+for obj in settings["remove_objects"]:
+  remove_lines.append("objectClass: %s" % (obj))
+  for atr in settings["remove_objects"][obj]:
+    remove_atrs.append(atr)
+
+for atr in settings["remove_attrs"]:
+  remove_atrs.append(atr)
+
 for chunk in read_chunks():
   count += 1
 
   dn=DN(chunk,skip_empty=clean_empty)
   log.set_dn(dn.dn)
 
-  for attr in settings["remove_attrs"]:
+  for line in remove_lines:
+    dn.line_filter(lambda l: l == line)
+
+  for attr in remove_atrs:
     regex=r"^%s:" % (attr)
-    dn.atr_filter(lambda a: re.match(regex,a) is not None)
+    dn.line_filter(lambda a: re.match(regex,a) is not None)
 
   if dn.dn in settings["dn_remove_attrs"]:
     for attr in settings["dn_remove_attrs"][dn.dn]:
       regex=r"^%s:" % (attr)
-      dn.atr_filter(lambda a: re.match(regex,a) is not None)
+      dn.line_filter(lambda a: re.match(regex,a) is not None)
 
   if settings["schema_regex"] is not None:
     # for atr in settings["schema_regex"]:
