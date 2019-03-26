@@ -63,7 +63,7 @@ class DN:
 
   def __init__(self,chunk,skip_empty=False):
     self.lines=chunk.splitlines()
-    dn_r = re.search(r'^dn: (.*)$', chunk, re.MULTILINE )
+    dn_r = self.match(r'^dn: (.*)$')
     if dn_r is not None:
       self.dn=dn_r.group(1)
     if skip_empty:
@@ -71,6 +71,13 @@ class DN:
 
   def __str__(self):
     return self.str()
+
+  def match(self,regex,flags=0):
+    for line in self.lines:
+      result = re.match(regex,line,flags)
+      if result is not None:
+        return result
+    return None
 
   def str(self):
     return "\n".join(filter(lambda x: x!="", self.lines))
@@ -116,7 +123,7 @@ def schema_regex(dn_atr):
   global log
   for atr in settings["schema_regex"]:
       regex=r"^%s: " % (atr)
-      if re.search( regex, dn_atr) is not None:
+      if re.match( regex, dn_atr) is not None:
         log.msg(" Schema regex found '%s'" % (atr))
         find=r"^%s: %s" % (atr, settings["schema_regex"][atr]["find"])
         replace="%s: %s" %(atr, settings["schema_regex"][atr]["replace"])
@@ -141,12 +148,12 @@ for chunk in read_chunks():
 
   for attr in settings["remove_attrs"]:
     regex=r"^%s:" % (attr)
-    dn.atr_filter(lambda a: re.search(regex,a) is not None)
+    dn.atr_filter(lambda a: re.match(regex,a) is not None)
 
   if dn.dn in settings["dn_remove_attrs"]:
     for attr in settings["dn_remove_attrs"][dn.dn]:
       regex=r"^%s:" % (attr)
-      dn.atr_filter(lambda a: re.search(regex,a) is not None)
+      dn.atr_filter(lambda a: re.match(regex,a) is not None)
 
   if settings["schema_regex"] is not None:
     for atr in settings["schema_regex"]:
