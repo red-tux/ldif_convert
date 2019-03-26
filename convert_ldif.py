@@ -32,6 +32,9 @@ import resource
 count = 0
 lines = 0
 
+stats_interval = 25000
+perf_interval = 10000
+
 #settings=yaml.load(open('settings.yml'),Loader=yaml.FullLoader)
 settings=yaml.load(open('settings.yml'))
 outf = open(settings["output_file"],"w")
@@ -150,6 +153,7 @@ if settings["clean_empty"] is not None:
 
 start_time=timer()
 chunk_start=timer()
+last_lines = 0
 for chunk in read_chunks():
   count += 1
 
@@ -173,15 +177,21 @@ for chunk in read_chunks():
   outf.write(dn.str())
   outf.write("\n\n")
   
-  if (count % 1000 ) == 0:
+  if (count % stats_interval ) == 0:
     chunk_time=timer()-chunk_start
-    cps = 1000/chunk_time
-    print("Chunks: %s   Lines read: %s   Elapsed: %s   CPS:  %s" % (count,lines,chunk_time,cps))
+    cps = stats_interval/chunk_time
+    line_delta = lines-last_lines
+    print("Chunks: %s   Lines: %s (delta: %s)   Elapsed: %s   CPS:  %s" % (count,lines,line_delta,chunk_time,cps))
     # print resource.getrusage(resource.RUSAGE_SELF)
     chunk_start=timer()
+    last_lines=lines
+
+  if count % perf_interval ) == 0;
+    re.purge()
 
 outf.close()
 
 total_time=timer()-start_time
 cps = count/total_time
-print("Chunks: %s   Lines: %s   Elapsed: %s   CPS:  %s" % (count,lines,total_time,cps))
+line_delta = lines-last_lines
+print("Chunks: %s   Lines: %s (delta: %s)   Elapsed: %s   CPS:  %s" % (count,lines,line_delta,chunk_time,cps))
