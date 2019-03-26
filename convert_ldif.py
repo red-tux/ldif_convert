@@ -186,7 +186,7 @@ for chunk in read_chunks():
     chunk_start=timer()
     last_lines=lines
 
-  if count % perf_interval ) == 0;
+  if (count % perf_interval) == 0:
     re.purge()
 
 outf.close()
@@ -194,4 +194,4 @@ outf.close()
 total_time=timer()-start_time
 cps = count/total_time
 line_delta = lines-last_lines
-print("Chunks: %s   Lines: %s (delta: %s)   Elapsed: %s   CPS:  %s" % (count,lines,line_delta,chunk_time,cps))
+print("Chunks: %s   Lines: %s (delta: %s)   Elapsed: %s   CPS:  %s" % (count,lines,line_delta,total_time,cps))
