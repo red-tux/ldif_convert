@@ -164,8 +164,8 @@ for chunk in read_chunks():
       dn.atr_filter(lambda a: re.match(regex,a) is not None)
 
   if settings["schema_regex"] is not None:
-    for atr in settings["schema_regex"]:
-        dn.atr_map(schema_regex)
+    # for atr in settings["schema_regex"]:
+    dn.atr_map(schema_regex)
   
   #clean up empty lines before writing
   outf.write(dn.str())
