@@ -27,6 +27,7 @@ import re
 import yaml
 from sets import Set
 from timeit import default_timer as timer
+import resource
 
 count = 0
 lines = 0
@@ -63,7 +64,7 @@ class DN:
   dn=""
 
   def __init__(self,chunk,skip_empty=False):
-    self.lines=chunk.splitlines()
+    self.lines=[x.rstrip() for x in chunk.splitlines()]
     dn_r = self.match(r'^dn: (.*)$')
     if dn_r is not None:
       self.dn=dn_r.group(1)
@@ -103,12 +104,17 @@ def read_chunks():
   chunk_lines=""
   for line in f.readlines():
     lines += 1
-    if re.match(r'^$',line) is not None:
-      chunk_lines=re.sub(r'\n ','',chunk_lines,flags=re.MULTILINE|re.DOTALL )
+    print ("--: '%s'" % (line))
+    if line == "\n":
+      # chunk_lines=re.sub(r'\n ','',chunk_lines,flags=re.MULTILINE|re.DOTALL )
+      chunk_lines=chunk_lines.replace("\n ","")
       yield chunk_lines
       chunk_lines = ""
     else:
       chunk_lines += line
+  # special case where there is no blank line at the end of the file
+  if chunk_lines!="":
+    yield chunk_lines
 
 def rm_filter(atr,dn):
   global log
@@ -169,11 +175,12 @@ for chunk in read_chunks():
   if (count % 1000 ) == 0:
     chunk_time=timer()-chunk_start
     cps = 1000/chunk_time
-    print("Chunks processed: %s   Lines read: %s   Elapsed time: %s   CPS:  %s" % (count,lines,chunk_time,cps))
+    print("Chunks: %s   Lines read: %s   Elapsed: %s   CPS:  %s" % (count,lines,chunk_time,cps))
+    # print resource.getrusage(resource.RUSAGE_SELF)
     chunk_start=timer()
 
 outf.close()
 
 total_time=timer()-start_time
-cps = count/chunk_time
-print("Chunks processed: %s   Lines read: %s   Elapsed time: %s   CPS:  %s" % (count,lines,chunk_time,cps))
+cps = count/total_time
+print("Chunks: %s   Lines: %s   Elapsed: %s   CPS:  %s" % (count,lines,total_time,cps))
