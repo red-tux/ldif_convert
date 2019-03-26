@@ -148,14 +148,21 @@ last_lines = 0
 
 remove_atrs=[]
 remove_lines=[]
+regex_line_filters=[]
 
 for obj in settings["remove_objects"]:
   remove_lines.append("objectClass: %s" % (obj))
+  regex_s = r"^objectClass: %s" % (obj)
+  regex_line_filters.append(re.compile(regex_s))
   for atr in settings["remove_objects"][obj]:
     remove_atrs.append(atr)
+    regex_s = r"^%s:" % (atr)
+    regex_line_filters.append(re.compile(regex_s))
 
 for atr in settings["remove_attrs"]:
   remove_atrs.append(atr)
+  regex_s = r"^%s:" % atr
+  regex_line_filters.append(re.compile(regex_s))
 
 for chunk in read_chunks():
   count += 1
@@ -163,12 +170,14 @@ for chunk in read_chunks():
   dn=DN(chunk,skip_empty=clean_empty)
   log.set_dn(dn.dn)
 
-  for line in remove_lines:
-    dn.line_filter(lambda l: l == line)
+  for rex in regex_line_filters:
+    dn.line_filter(lambda l: rex.match(l))
+  # for line in remove_lines:
+  #   dn.line_filter(lambda l: l == line)
 
-  for attr in remove_atrs:
-    regex=r"^%s:" % (attr)
-    dn.line_filter(lambda a: re.match(regex,a) is not None)
+  # for attr in remove_atrs:
+  #   regex=r"^%s:" % (attr)
+  #   dn.line_filter(lambda a: re.match(regex,a) is not None)
 
   if dn.dn in settings["dn_remove_attrs"]:
     for attr in settings["dn_remove_attrs"][dn.dn]:
