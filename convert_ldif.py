@@ -75,8 +75,10 @@ class DN:
     return self.str()
 
   def match(self,regex,flags=0):
+    rex=re.compile(regex,flags)
     for line in self.lines:
-      result = re.match(regex,line,flags)
+      result = rex.match(line)
+      # result = re.match(regex,line,flags)
       if result is not None:
         return result
     return None
