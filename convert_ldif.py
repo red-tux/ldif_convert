@@ -67,12 +67,14 @@ class DN:
   dn=""
 
   def __init__(self,chunk,skip_empty=False):
+    global log
     self.lines=[x.rstrip() for x in chunk.splitlines()]
     dn_r = self.match(r'^dn: (.*)$')
     if dn_r is not None:
       self.dn=dn_r.group(1)
+    log.set_dn(self.dn)
     if skip_empty:
-      self.lines=[ x for x in self.lines if x!="" ]
+      self.line_filter(lambda x: re.match(r"^\w+:$",x) is not None)
 
   def __str__(self):
     return self.str()
@@ -168,7 +170,6 @@ for chunk in read_chunks():
   count += 1
 
   dn=DN(chunk,skip_empty=clean_empty)
-  log.set_dn(dn.dn)
 
   for rex in regex_line_filters:
     dn.line_filter(lambda l: rex.match(l))
