@@ -74,7 +74,7 @@ class DN:
       self.dn=dn_r.group(1)
     log.set_dn(self.dn)
     if skip_empty:
-      self.line_filter(lambda x: re.match(r"^\w+:$",x) is not None)
+      self.line_filter(lambda x: re.match(r"^\w+:$",x) is not None,msg="empty field removed")
 
   def __str__(self):
     return self.str()
@@ -95,13 +95,13 @@ class DN:
     self.lines = map(mapfunc, self.lines)
     return self.lines
 
-  def line_filter(self,filterfunc):
+  def line_filter(self,filterfunc,msg="line filtered out"):
     global log
     tmp_lines=self.lines
     # Filter test is true for keeping
     self.lines=[ x for x in self.lines if not filterfunc(x)]
     for x in Set(tmp_lines).difference(Set(self.lines)):
-      log.msg(" line filtered out:  '%s'" % (x))
+      log.msg(" %s:  '%s'" % (msg,x))
 
     return self.lines
 
