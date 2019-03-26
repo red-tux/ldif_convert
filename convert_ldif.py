@@ -104,7 +104,7 @@ class DN:
     return self.lines
 
 def read_chunks():
-  f=open(settings["input_file"])
+  f=open(settings["input_file"],'r',10000)
   global lines
   chunk_lines=""
   # for line in f.readlines():
