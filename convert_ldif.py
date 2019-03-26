@@ -104,7 +104,6 @@ def read_chunks():
   chunk_lines=""
   for line in f.readlines():
     lines += 1
-    print ("--: '%s'" % (line))
     if line == "\n":
       # chunk_lines=re.sub(r'\n ','',chunk_lines,flags=re.MULTILINE|re.DOTALL )
       chunk_lines=chunk_lines.replace("\n ","")
