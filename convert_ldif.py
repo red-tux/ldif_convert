@@ -152,8 +152,16 @@ class DN:
         return B64_Atribute(atr_name, atr_data)
       else:
         log.msg(" Converting base 64 '%s'" % (line))
-        atr_data = base64.b64decode(atr_data).decode('utf-8')
-
+        try:
+          atr_data = base64.b64decode(atr_data).decode('utf-8')
+        except UnicodeDecodeError, e:
+          print("Error importing '%s' for 'dn: %s'" % (atr_name, self.dn))
+          log.msg(" Base64 error for atribute '%s'" % (atr_name))
+          log.msg("  Error message: %s" % str(e))
+          if settings["IgnoreB64Errors"] == "yes":
+            print(" Inoring error, setting data to base64 and continuing")
+            log.msg("  Inoring error, setting data to base64 and continuing")
+            return B64_Atribute(atr_name, atr_data)
 
         try:
           atr_data = atr_data.decode('ascii')
