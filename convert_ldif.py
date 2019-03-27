@@ -249,6 +249,7 @@ def schema_regex(line):
 def schema_validate(line):
   global log
   global settings
+  global validation_errors
 
   if not isinstance(line, Atribute):
     return line
