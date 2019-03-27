@@ -231,9 +231,6 @@ def schema_regex(line):
   if line.name not in settings["schema_regex"]:
     return line
   atr=settings["schema_regex"][line.name]
-  if line.name=="timestamp":
-    print atr
-    print(re.match(atr["find"],line.value))
   if re.match(atr["find"],line.value) is not None:
     new_val=re.sub(atr["find"], atr["replace"],line.value)
     log.msg(" Schema regex '%s'  '%s' -> '%s'" %(line.name,line.value,new_val))
