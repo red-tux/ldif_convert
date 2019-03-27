@@ -246,22 +246,22 @@ def schema_regex(line):
     line.value=new_val
   return line
 
-  def schema_validate(line):
-    global log
-    global settings
+def schema_validate(line):
+  global log
+  global settings
 
-    if not isinstance(line, Atribute):
-      return line
-    
-    if line.name not in settings["schema_validate"]:
-      return line
-
-    if re.match(settings["schema_validate"][line.name],line.value) is None:
-      log.msg (" Schema Validation error, rejecting, for '%s: %s'" % (line.name, line.value))
-      validation_errors +=1
-      return None
-    
+  if not isinstance(line, Atribute):
     return line
+  
+  if line.name not in settings["schema_validate"]:
+    return line
+
+  if re.match(settings["schema_validate"][line.name],line.value) is None:
+    log.msg (" Schema Validation error, rejecting, for '%s: %s'" % (line.name, line.value))
+    validation_errors +=1
+    return None
+  
+  return line
 
 log=Logger(settings["log_file"])
 
