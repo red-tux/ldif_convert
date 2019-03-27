@@ -32,6 +32,7 @@ import base64
 
 count = 0
 lines = 0
+validation_errors = 0
 
 stats_interval = 25000
 perf_interval = 10000
@@ -245,6 +246,23 @@ def schema_regex(line):
     line.value=new_val
   return line
 
+  def schema_validate(line):
+    global log
+    global settings
+
+    if not isinstance(line, Atribute):
+      return line
+    
+    if line.name not in settings["schema_validate"]:
+      return line
+
+    if re.match(settings["schema_validate"][line.name],line.value) is None:
+      log.msg (" Schema Validation error, rejecting, for '%s: %s'" % (line.name, line.value)
+      validation_errors +=1
+      return None
+    
+    return line
+
 log=Logger(settings["log_file"])
 
 clean_empty=False
@@ -273,6 +291,9 @@ for chunk in read_chunks():
 
   if settings["schema_regex"] is not None:
     dn.atr_map(schema_regex)
+
+  if settings["schema_validate"] is not None:
+    dn.atr_map(schema_validate)
   
   #clean up empty lines before writing
   outf.write(dn.str())
@@ -293,3 +314,4 @@ total_time=timer()-start_time
 cps = count/total_time
 line_delta = lines-last_lines
 print("Chunks: %s   Lines: %s (delta: %s)   Elapsed: %s   CPS:  %s" % (count,lines,line_delta,total_time,cps))
+print("total validation errors: %s" % (validation_errors))
