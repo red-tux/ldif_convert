@@ -257,7 +257,7 @@ def schema_regex(line):
       return line
 
     if re.match(settings["schema_validate"][line.name],line.value) is None:
-      log.msg (" Schema Validation error, rejecting, for '%s: %s'" % (line.name, line.value)
+      log.msg (" Schema Validation error, rejecting, for '%s: %s'" % (line.name, line.value))
       validation_errors +=1
       return None
     
