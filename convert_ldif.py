@@ -28,6 +28,7 @@ import yaml
 from sets import Set
 from timeit import default_timer as timer
 import resource
+import base64
 
 count = 0
 lines = 0
@@ -42,6 +43,8 @@ outf = open(settings["output_file"],"w")
 class Logger:
   logf = None
   current_dn = ""
+  header_written = False
+  start_size = 0
 
   def __init__(self, logfile):
     self.logf = open(settings["log_file"],"w")
@@ -49,35 +52,132 @@ class Logger:
   def __del__(self):
     self.logf.close()
 
-  def set_dn(self,dn):
+  def set_dn(self,dn,size=0):
     self.current_dn=dn
+    self.header_written = False
+    self.start_size = size
   
   def msg(self, str):
     # To save on log file space, we will only write the DN when there is
     # an actual message.  current_dn is used as the flag for so that it only
     # get's written once.
-    if self.current_dn:
+    if not self.header_written:
       self.logf.write ("Processing: %s\n" % (self.current_dn) )
-      self.current_dn = ""
-    self.logf.write(str)
+      self.header_written = True
+    self.logf.write(str.encode('utf-8'))
     self.logf.write("\n")
+
+class Line:
+  name=""
+  value=""
+
+  def __init__(self,data):
+    self.value=data
+  
+  def __str__(self):
+    return self.value
+
+  def dump(self):
+    return self.__str__()
+
+
+class Comment(Line):
+  pass
+
+class Atribute(Line):
+  def __init__(self,name,value):
+    self.name=name
+    self.value=value
+
+  def __str__(self):
+    if type(self.value) is unicode:
+      return "%s: %s" % (self.name,self.value.encode('utf-8'))
+    else:
+      return "%s: %s" % (self.name,self.value)
+  
+  def dump(self):
+    if type(self.value) is unicode:
+      return "%s:: %s" % (self.name,base64.b64encode(self.value.encode('utf-8')))
+    else:
+      return "%s: %s" % (self.name,self.value)
+
+class B64_Atribute(Atribute):
+  def __str__(self):
+    return "%s:: %s" % (self.name,self.value)
+  
+  def dump(self):
+    return "%s:: %s" % (self.name,self.value)
+
 
 class DN:
   lines=[]
-  dn=""
+  dn="NONE"
 
   def __init__(self,chunk,skip_empty=False):
     global log
-    self.lines=[x.rstrip() for x in chunk.splitlines()]
-    dn_r = self.match(r'^dn: (.*)$')
+    dn_r=re.search(r'^dn: (.*)$',chunk,re.MULTILINE)
+    # dn_r = self.match(r'^dn: (.*)$')
     if dn_r is not None:
       self.dn=dn_r.group(1)
+  
     log.set_dn(self.dn)
-    if skip_empty:
-      self.line_filter(lambda x: re.match(r"^\w+:$",x) is not None,msg="empty field removed")
+
+    # Outer list comprehension ignores "none" fields returned by filter
+    self.lines = [x for x in 
+                    [ self.import_line_filter(l,skip_empty=skip_empty) for l in chunk.splitlines()] 
+                  if x ] 
 
   def __str__(self):
     return self.str()
+
+  def import_line_filter(self,line,skip_empty=False):
+    global settings
+    global log
+
+    linerex = re.match(r'(^\s*#.*)|(^\w+)(:{1,2})\s*(.*)$',line)
+    if linerex is None:
+      print("ERROR importing line: '%s'" % (line))
+      print("  Ignoring processing, continuing\n")
+      return Line(line)
+    if linerex.group(1) is not None:
+      return Comment(line)  #comment found, ignore
+
+    atr_name=linerex.group(2)
+    atr_sep=linerex.group(3)
+    atr_data=linerex.group(4)
+
+    # Double colon separator means base64 endoded data
+    if atr_sep == "::":  
+      print("Base64 field '%s' found" % (atr_name))
+      if atr_name in settings["b64_no_convert"]:
+        return B64_Atribute(atr_name, atr_data)
+      else:
+        print ("Converting base 64 '%s'" % (line))
+        log.msg(" Converting base 64 '%s'" % (line))
+        atr_data = base64.b64decode(atr_data).decode('utf-8')
+
+
+        print ("                   '%s: %s'" % (atr_name, atr_data))
+        try:
+          atr_data = atr_data.decode('ascii')
+        except UnicodeEncodeError:
+          pass  # the data contains unicode characters, ignore and don't convert
+
+        line="%s: %s" %(atr_name,atr_data)
+        log.msg("             result '%s'" % (line))
+        print("%s: '%s'" %(type(line),line))
+
+    atr_data_rstrip=atr_data.rstrip()
+    if atr_data!=atr_data_rstrip:
+      print "'%s'  '%s'"% (atr_data, atr_data_rstrip)
+      log.msg(" Trailing whitespace removed from: '%s'" % (atr_name))
+      atr_data=atr_data_rstrip
+    # If noting found for group 4, atribute has empty data
+    if atr_data == "" and skip_empty:
+      log.msg(" Skipping blank atribute: '%s'" %(atr_name))
+      return None
+        
+    return Atribute(atr_name,atr_data)    
 
   def match(self,regex,flags=0):
     rex=re.compile(regex,flags)
@@ -89,19 +189,26 @@ class DN:
     return None
 
   def str(self):
-    return "\n".join(filter(lambda x: x!="", self.lines))
+    print [x.dump() for x in self.lines if x is not None]
+    return "\n".join([x.dump() for x in self.lines if x is not None])
+      # join(filter(lambda x: x!="", self.lines))
 
   def atr_map(self,mapfunc):
     self.lines = map(mapfunc, self.lines)
     return self.lines
 
-  def line_filter(self,filterfunc,msg="line filtered out"):
+  def line_filter_helper(self,filterbool,line,msg):
     global log
-    tmp_lines=self.lines
+    if filterbool:
+      log.msg(" %s:  '%s'" % (msg,line))
+
+    
+    return filterbool
+
+
+  def line_filter(self,filterfunc,msg="line filtered out"):
     # Filter test is true for keeping
-    self.lines=[ x for x in self.lines if not filterfunc(x)]
-    for x in Set(tmp_lines).difference(Set(self.lines)):
-      log.msg(" %s:  '%s'" % (msg,x))
+    self.lines=[ x for x in self.lines if not self.line_filter_helper(filterfunc(x),x,msg)]
 
     return self.lines
 
@@ -123,19 +230,22 @@ def read_chunks():
   if chunk_lines!="":
     yield chunk_lines
 
-def schema_regex(dn_atr):
+def schema_regex(line):
   global log
-  for atr in settings["schema_regex"]:
-      regex=r"^%s: " % (atr)
-      if re.match( regex, dn_atr) is not None:
-        log.msg(" Schema regex found '%s'" % (atr))
-        find=r"^%s: %s" % (atr, settings["schema_regex"][atr]["find"])
-        replace="%s: %s" %(atr, settings["schema_regex"][atr]["replace"])
-        # print find
-        # print replace
-        # print
-        dn_atr=re.sub(find,replace,dn_atr)
-  return dn_atr
+  global settings
+  if isinstance(line, Line) or isinstance(line,Comment):
+    return line
+  
+  print("%s| %s" %(type(line).__name__, line))
+  atr=settings["schema_regex"][line.name]
+  if atr is None:
+    return line
+
+  if re.match(atr["find"],line.value) is not None:
+    new_val=re.sub(atr["find"], atr["replace"],line.value)
+    log.msg(" Schema regex '%s'  '%s' -> '%s'" %(line.name,line.value,new_val))
+    line.value=new_val
+  return line
 
 log=Logger(settings["log_file"])
 
@@ -148,42 +258,43 @@ start_time=timer()
 chunk_start=timer()
 last_lines = 0
 
-remove_atrs=[]
-remove_lines=[]
-regex_line_filters=[]
+# remove_atrs=[]
+# remove_lines=[]
+# regex_line_filters=[]
 
-for obj in settings["remove_objects"]:
-  remove_lines.append("objectClass: %s" % (obj))
-  regex_s = r"^objectClass: %s" % (obj)
-  regex_line_filters.append(re.compile(regex_s))
-  for atr in settings["remove_objects"][obj]:
-    remove_atrs.append(atr)
-    regex_s = r"^%s:" % (atr)
-    regex_line_filters.append(re.compile(regex_s))
+# for obj in settings["remove_objects"]:
+#   remove_lines.append("objectClass: %s" % (obj))
+#   regex_s = r"^objectClass: %s" % (obj)
+#   regex_line_filters.append(re.compile(regex_s))
+#   for atr in settings["remove_objects"][obj]:
+#     remove_atrs.append(atr)
+#     regex_s = r"^%s:" % (atr)
+#     regex_line_filters.append(re.compile(regex_s))
 
-for atr in settings["remove_attrs"]:
-  remove_atrs.append(atr)
-  regex_s = r"^%s:" % atr
-  regex_line_filters.append(re.compile(regex_s))
+# for atr in settings["remove_attrs"]:
+#   remove_atrs.append(atr)
+#   regex_s = r"^%s:" % atr
+#   regex_line_filters.append(re.compile(regex_s))
 
 for chunk in read_chunks():
   count += 1
 
   dn=DN(chunk,skip_empty=clean_empty)
 
-  for rex in regex_line_filters:
-    dn.line_filter(lambda l: rex.match(l))
-  # for line in remove_lines:
-  #   dn.line_filter(lambda l: l == line)
-
-  # for attr in remove_atrs:
-  #   regex=r"^%s:" % (attr)
-  #   dn.line_filter(lambda a: re.match(regex,a) is not None)
+  # for rex in regex_line_filters:
+  #   dn.line_filter(lambda l: rex.match(l))
+  for obj in settings["remove_objects"]:
+    print obj
+    dn.line_filter(lambda l: l.name=="objectClass" and l.value==obj, msg="object filtered out")
+  
+  for atr in settings["remove_attrs"]:
+    dn.line_filter(lambda l: l.name==atr, msg="global atribute filtered out")
 
   if dn.dn in settings["dn_remove_attrs"]:
     for attr in settings["dn_remove_attrs"][dn.dn]:
-      regex=r"^%s:" % (attr)
-      dn.line_filter(lambda a: re.match(regex,a) is not None)
+      # regex=r"^%s:" % (attr)
+      # dn.line_filter(lambda a: re.match(regex,a) is not None)
+      dn.line_filter(lambda l: l.name==attr,msg="specific atribute filtered out")
 
   if settings["schema_regex"] is not None:
     # for atr in settings["schema_regex"]:
