@@ -158,7 +158,7 @@ class DN:
           print("Error importing '%s' for 'dn: %s'" % (atr_name, self.dn))
           log.msg(" Base64 error for atribute '%s'" % (atr_name))
           log.msg("  Error message: %s" % str(e))
-          if settings["IgnoreB64Errors"] == "yes":
+          if settings["IgnoreB64Errors"]:
             print(" Inoring error, setting data to base64 and continuing")
             log.msg("  Inoring error, setting data to base64 and continuing")
             return B64_Atribute(atr_name, atr_data)
