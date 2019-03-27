@@ -136,8 +136,8 @@ class DN:
 
     linerex = re.match(r'(^\s*#.*)|(^\w+)(:{1,2})\s*(.*)$',line)
     if linerex is None:
-      print("ERROR importing line: '%s'" % (line))
-      print("  Ignoring processing, continuing\n")
+      log.msg("ERROR importing line: '%s'" % (line))
+      log.msg("  Leaving as is, continuing\n")
       return Line(line)
     if linerex.group(1) is not None:
       return Comment(line)  #comment found, ignore
@@ -148,16 +148,13 @@ class DN:
 
     # Double colon separator means base64 endoded data
     if atr_sep == "::":  
-      print("Base64 field '%s' found" % (atr_name))
       if atr_name in settings["b64_no_convert"]:
         return B64_Atribute(atr_name, atr_data)
       else:
-        print ("Converting base 64 '%s'" % (line))
         log.msg(" Converting base 64 '%s'" % (line))
         atr_data = base64.b64decode(atr_data).decode('utf-8')
 
 
-        print ("                   '%s: %s'" % (atr_name, atr_data))
         try:
           atr_data = atr_data.decode('ascii')
         except UnicodeEncodeError:
@@ -165,11 +162,9 @@ class DN:
 
         line="%s: %s" %(atr_name,atr_data)
         log.msg("             result '%s'" % (line))
-        print("%s: '%s'" %(type(line),line))
 
     atr_data_rstrip=atr_data.rstrip()
     if atr_data!=atr_data_rstrip:
-      print "'%s'  '%s'"% (atr_data, atr_data_rstrip)
       log.msg(" Trailing whitespace removed from: '%s'" % (atr_name))
       atr_data=atr_data_rstrip
     # If noting found for group 4, atribute has empty data
@@ -189,7 +184,6 @@ class DN:
     return None
 
   def str(self):
-    print [x.dump() for x in self.lines if x is not None]
     return "\n".join([x.dump() for x in self.lines if x is not None])
       # join(filter(lambda x: x!="", self.lines))
 
@@ -216,11 +210,9 @@ def read_chunks():
   f=open(settings["input_file"],'r',100000)
   global lines
   chunk_lines=""
-  # for line in f.readlines():
   for line in f:
     lines += 1
     if line == "\n":
-      # chunk_lines=re.sub(r'\n ','',chunk_lines,flags=re.MULTILINE|re.DOTALL )
       chunk_lines=chunk_lines.replace("\n ","")
       yield chunk_lines
       chunk_lines = ""
@@ -233,14 +225,15 @@ def read_chunks():
 def schema_regex(line):
   global log
   global settings
-  if isinstance(line, Line) or isinstance(line,Comment):
+  if not isinstance(line, Atribute):
     return line
   
-  print("%s| %s" %(type(line).__name__, line))
-  atr=settings["schema_regex"][line.name]
-  if atr is None:
+  if line.name not in settings["schema_regex"]:
     return line
-
+  atr=settings["schema_regex"][line.name]
+  if line.name=="timestamp":
+    print atr
+    print(re.match(atr["find"],line.value))
   if re.match(atr["find"],line.value) is not None:
     new_val=re.sub(atr["find"], atr["replace"],line.value)
     log.msg(" Schema regex '%s'  '%s' -> '%s'" %(line.name,line.value,new_val))
@@ -258,33 +251,12 @@ start_time=timer()
 chunk_start=timer()
 last_lines = 0
 
-# remove_atrs=[]
-# remove_lines=[]
-# regex_line_filters=[]
-
-# for obj in settings["remove_objects"]:
-#   remove_lines.append("objectClass: %s" % (obj))
-#   regex_s = r"^objectClass: %s" % (obj)
-#   regex_line_filters.append(re.compile(regex_s))
-#   for atr in settings["remove_objects"][obj]:
-#     remove_atrs.append(atr)
-#     regex_s = r"^%s:" % (atr)
-#     regex_line_filters.append(re.compile(regex_s))
-
-# for atr in settings["remove_attrs"]:
-#   remove_atrs.append(atr)
-#   regex_s = r"^%s:" % atr
-#   regex_line_filters.append(re.compile(regex_s))
-
 for chunk in read_chunks():
   count += 1
 
   dn=DN(chunk,skip_empty=clean_empty)
 
-  # for rex in regex_line_filters:
-  #   dn.line_filter(lambda l: rex.match(l))
   for obj in settings["remove_objects"]:
-    print obj
     dn.line_filter(lambda l: l.name=="objectClass" and l.value==obj, msg="object filtered out")
   
   for atr in settings["remove_attrs"]:
@@ -292,12 +264,9 @@ for chunk in read_chunks():
 
   if dn.dn in settings["dn_remove_attrs"]:
     for attr in settings["dn_remove_attrs"][dn.dn]:
-      # regex=r"^%s:" % (attr)
-      # dn.line_filter(lambda a: re.match(regex,a) is not None)
       dn.line_filter(lambda l: l.name==attr,msg="specific atribute filtered out")
 
   if settings["schema_regex"] is not None:
-    # for atr in settings["schema_regex"]:
     dn.atr_map(schema_regex)
   
   #clean up empty lines before writing
@@ -312,9 +281,6 @@ for chunk in read_chunks():
     # print resource.getrusage(resource.RUSAGE_SELF)
     chunk_start=timer()
     last_lines=lines
-
-  if (count % perf_interval) == 0:
-    re.purge()
 
 outf.close()
 
