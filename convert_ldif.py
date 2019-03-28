@@ -282,6 +282,9 @@ for chunk in read_chunks():
 
   for obj in settings["remove_objects"]:
     dn.line_filter(lambda l: l.name=="objectClass" and l.value==obj, msg="object filtered out")
+    for atr in settings["remove_objects"][obj]:
+      msgstr = "atribute of '%s' object filtered out" % (obj)
+      dn.line_filter(lambda l: l.name==atr, msg=msgstr)
   
   for atr in settings["remove_attrs"]:
     dn.line_filter(lambda l: l.name==atr, msg="global atribute filtered out")
