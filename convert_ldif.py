@@ -313,7 +313,7 @@ for chunk in read_chunks():
   if "rename_atrs" in settings and settings["rename_atrs"] is not None:
     for rename_dn in settings["rename_atrs"]:
       rex=r".*%s$" % (rename_dn)
-      if re.match(rex, dn.dn) is not None:
+      if re.match(rex, dn.dn, flags=re.IGNORECASE) is not None:
         dn.atr_map(lambda l: rename_atr(settings["rename_atrs"][rename_dn],l))
 
 
