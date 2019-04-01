@@ -121,6 +121,7 @@ class DN:
     # dn_r = self.match(r'^dn: (.*)$')
     if dn_r is not None:
       self.dn=dn_r.group(1)
+      self.dn=re.sub(r",\s+",",",self.dn)
   
     log.set_dn(self.dn)
 
