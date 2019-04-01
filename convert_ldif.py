@@ -29,6 +29,7 @@ from sets import Set
 from timeit import default_timer as timer
 import resource
 import base64
+from functools import partial
 
 count = 0
 lines = 0
@@ -264,6 +265,18 @@ def schema_validate(line):
   
   return line
 
+def rename_atr(atr_hash, line):
+  global log
+  # Ignore plain lines and comments
+  if not isinstance(line, Atribute):
+    return line
+  
+  if line.name in atr_hash:
+    log.msg(" atribute rename '%s' -> '%s'" %(line.name, atr_hash[line.name]))
+    line.name=atr_hash[line.name]
+  
+  return line
+
 log=Logger(settings["log_file"])
 
 clean_empty=False
@@ -286,17 +299,24 @@ for chunk in read_chunks():
       msgstr = "atribute of '%s' object filtered out" % (obj)
       dn.line_filter(lambda l: l.name==atr, msg=msgstr)
   
-  for atr in settings["remove_attrs"]:
+  if "remove_attrs" in settings and atr in settings["remove_attrs"]:
     dn.line_filter(lambda l: l.name==atr, msg="global atribute filtered out")
 
-  if dn.dn in settings["dn_remove_attrs"]:
+  if "dn_remove_attrs" in settings and dn.dn in settings["dn_remove_attrs"]:
     for attr in settings["dn_remove_attrs"][dn.dn]:
       dn.line_filter(lambda l: l.name==attr,msg="specific atribute filtered out")
 
-  if settings["schema_regex"] is not None:
+  if "schema_regex" in settings and settings["schema_regex"] is not None:
     dn.atr_map(schema_regex)
+  
+  if "rename_atrs" in settings and settings["rename_atrs"] is not None:
+    for rename_dn in settings["rename_atrs"]:
+      rex=r".*%s$" % (rename_dn)
+      if re.match(rex, dn.dn) is not None:
+        dn.atr_map(lambda l: rename_atr(settings["rename_atrs"][rename_dn],l))
 
-  if settings["schema_validate"] is not None:
+
+  if "schema_validate" in settings and settings["schema_validate"] is not None:
     dn.atr_map(schema_validate)
   
   #clean up empty lines before writing
