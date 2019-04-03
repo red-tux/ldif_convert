@@ -54,6 +54,9 @@ class Logger:
   def __del__(self):
     self.logf.close()
 
+  def flush(self):
+    logf.flush()
+
   def set_dn(self,dn,size=0):
     self.current_dn=dn
     self.header_written = False
@@ -333,6 +336,7 @@ for chunk in read_chunks():
     # print resource.getrusage(resource.RUSAGE_SELF)
     chunk_start=timer()
     last_lines=lines
+    log.flush()
 
 outf.close()
 
