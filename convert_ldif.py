@@ -55,7 +55,7 @@ class Logger:
     self.logf.close()
 
   def flush(self):
-    logf.flush()
+    self.logf.flush()
 
   def set_dn(self,dn,size=0):
     self.current_dn=dn
