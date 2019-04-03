@@ -300,9 +300,9 @@ for chunk in read_chunks():
       msgstr = "atribute of '%s' object filtered out" % (obj)
       dn.line_filter(lambda l: l.name==atr, msg=msgstr)
   
-  # if "remove_attrs" in settings and atr in settings["remove_attrs"]:
-  for attr in settings["remove_attrs"]:
-    dn.line_filter(lambda l: l.name==atr, msg="global atribute filtered out")
+  if "remove_attrs" in settings:
+    for attr in settings["remove_attrs"]:
+      dn.line_filter(lambda l: l.name==attr, msg="global atribute filtered out")
 
   if "dn_remove_attrs" in settings and dn.dn in settings["dn_remove_attrs"]:
     for attr in settings["dn_remove_attrs"][dn.dn]:
