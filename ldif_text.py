@@ -27,6 +27,9 @@ ignore_b64_errors = True
 # Global setting of attributes which base64 conversion should not be attempted
 b64_no_convert = []
 
+# Show general error messages
+show_error_msg=True
+
 class Line:
   name=""
   value=""
@@ -82,7 +85,7 @@ class DN:
       self.dn=dn_r.group(1)
       self.dn=re.sub(r",\s+",",",self.dn)
   
-    ldif_logger.log.set_dn(self.dn)
+    if ldif_logger.log is not None: ldif_logger.log.set_dn(self.dn)
 
     # Outer list comprehension ignores "none" fields returned by filter
     self.lines = [x for x in 
@@ -98,8 +101,8 @@ class DN:
 
     linerex = re.match(r'(^\s*#.*)|(^\w+)(:{1,2})\s*(.*)$',line)
     if linerex is None:
-      ldif_logger.log.msg("ERROR importing line: '%s'" % (line))
-      ldif_logger.log.msg("  Leaving as is, continuing\n")
+      if ldif_logger.log is not None: ldif_logger.log.msg("ERROR importing line: '%s'" % (line))
+      if ldif_logger.log is not None: ldif_logger.log.msg("  Leaving as is, continuing\n")
       return Line(line)
     if linerex.group(1) is not None:
       return Comment(line)  #comment found, ignore
@@ -113,16 +116,16 @@ class DN:
       if atr_name in b64_no_convert:
         return B64_Atribute(atr_name, atr_data)
       else:
-        ldif_logger.log.msg(" Converting base 64 '%s'" % (line))
+        if ldif_logger.log is not None: ldif_logger.log.msg(" Converting base 64 '%s'" % (line))
         try:
           atr_data = base64.b64decode(atr_data).decode('utf-8')
         except UnicodeDecodeError, e:
-          print("Error importing '%s' for 'dn: %s'" % (atr_name, self.dn))
-          ldif_logger.log.msg(" Base64 error for atribute '%s'" % (atr_name))
-          ldif_logger.log.msg("  Error message: %s" % str(e))
+          if show_error_msg: print("Error importing '%s' for 'dn: %s'" % (atr_name, self.dn))
+          if ldif_logger.log is not None: ldif_logger.log.msg(" Base64 error for atribute '%s'" % (atr_name))
+          if ldif_logger.log is not None: ldif_logger.log.msg("  Error message: %s" % str(e))
           if ignore_b64_errors:
-            print(" Inoring error, setting data to base64 and continuing")
-            ldif_logger.log.msg("  Inoring error, setting data to base64 and continuing")
+            if show_error_msg: print(" Inoring error, setting data to base64 and continuing")
+            if ldif_logger.log is not None: ldif_logger.log.msg("  Inoring error, setting data to base64 and continuing")
             return B64_Atribute(atr_name, atr_data)
 
         try:
@@ -131,15 +134,15 @@ class DN:
           pass  # the data contains unicode characters, ignore and don't convert
 
         line="%s: %s" %(atr_name,atr_data)
-        ldif_logger.log.msg("             result '%s'" % (line))
+        if ldif_logger.log is not None: ldif_logger.log.msg("             result '%s'" % (line))
 
     atr_data_rstrip=atr_data.rstrip()
     if atr_data!=atr_data_rstrip:
-      ldif_logger.log.msg(" Trailing whitespace removed from: '%s'" % (atr_name))
+      if ldif_logger.log is not None: ldif_logger.log.msg(" Trailing whitespace removed from: '%s'" % (atr_name))
       atr_data=atr_data_rstrip
     # If noting found for group 4, atribute has empty data
     if atr_data == "" and skip_empty:
-      ldif_logger.log.msg(" Skipping blank atribute: '%s'" %(atr_name))
+      if ldif_logger.log is not None: ldif_logger.log.msg(" Skipping blank atribute: '%s'" %(atr_name))
       return None
         
     return Atribute(atr_name,atr_data)    
@@ -164,7 +167,7 @@ class DN:
   def line_filter_helper(self,filterbool,line,msg):
     global log
     if filterbool:
-      ldif_logger.log.msg(" %s:  '%s'" % (msg,line))
+      if ldif_logger.log is not None: ldif_logger.log.msg(" %s:  '%s'" % (msg,line))
 
     
     return filterbool
