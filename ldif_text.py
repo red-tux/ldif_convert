@@ -78,7 +78,6 @@ class DN:
   ignore_b64_errors=True
 
   def __init__(self,chunk,skip_empty=False):
-    global log
     dn_r=re.search(r'^dn: (.*)$',chunk,re.MULTILINE)
     # dn_r = self.match(r'^dn: (.*)$')
     if dn_r is not None:
@@ -165,7 +164,6 @@ class DN:
     return self.lines
 
   def line_filter_helper(self,filterbool,line,msg):
-    global log
     if filterbool:
       if ldif_logger.log is not None: ldif_logger.log.msg(" %s:  '%s'" % (msg,line))
 
