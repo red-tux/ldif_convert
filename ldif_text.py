@@ -79,7 +79,10 @@ class DN:
   import_mode='full'
 
   # importmode='full' - default, process all lines on injestion
-  # importmode='simple' - only parse for DN, and store incoming lines as is
+  # importmode='simple' - only parse for DN, and store incoming lines as a
+  #                       simple Linue attribute object
+  # importmode='raw' - Only parse for DN, store chunk as is
+
   def __init__(self,chunk,skip_empty=False,import_mode='full'):
     dn_r=re.search(r'^dn: (.*)$',chunk,re.MULTILINE)
     self.import_mode=import_mode
