@@ -76,10 +76,13 @@ class DN:
   lines=[]
   dn="NONE"
   ignore_b64_errors=True
+  import_mode='full'
 
-  def __init__(self,chunk,skip_empty=False):
+  # importmode='full' - default, process all lines on injestion
+  # importmode='simple' - only parse for DN, and store incoming lines as is
+  def __init__(self,chunk,skip_empty=False,import_mode='full'):
     dn_r=re.search(r'^dn: (.*)$',chunk,re.MULTILINE)
-    # dn_r = self.match(r'^dn: (.*)$')
+    self.import_mode=import_mode
     if dn_r is not None:
       self.dn=dn_r.group(1)
       self.dn=re.sub(r",\s+",",",self.dn)
@@ -87,9 +90,16 @@ class DN:
     if ldif_logger.log is not None: ldif_logger.log.set_dn(self.dn)
 
     # Outer list comprehension ignores "none" fields returned by filter
-    self.lines = [x for x in 
+    if import_mode=='full':
+      self.lines = [x for x in 
                     [ self.import_line_filter(l,skip_empty=skip_empty) for l in chunk.splitlines()] 
-                  if x ] 
+                    if x ] 
+    elif import_mode=='simple':
+      self.lines = [Line(x) for x in chunk.splitlines()]
+    elif import_mode=='raw':
+      self.lines = chunk
+    else:
+      raise "Unknown import_mode %s" % (import_mode)
 
   def __str__(self):
     return self.str()
@@ -156,7 +166,10 @@ class DN:
     return None
 
   def str(self):
-    return "\n".join([x.dump() for x in self.lines if x is not None])
+    if self.import_mode=='raw':
+      return self.lines
+    else:
+      return "\n".join([x.dump() for x in self.lines if x is not None])
       # join(filter(lambda x: x!="", self.lines))
 
   def atr_map(self,mapfunc):
