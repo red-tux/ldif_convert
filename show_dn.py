@@ -56,6 +56,8 @@ else:
 for chunk in read_chunks(args.source):
   dn=ldif_text.DN(chunk)
   if dn.dn in dn_list:
-    print dn
+    dn_list.remote(dn.dn)
+    print(dn)
     print
-
+  if not dn_list:
+    break
