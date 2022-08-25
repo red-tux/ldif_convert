@@ -43,7 +43,7 @@ class Logger:
     if not self.header_written:
       self.logf.write ("Processing: %s\n" % (self.current_dn) )
       self.header_written = True
-    self.logf.write(str.encode('utf-8'))
+    self.logf.write(str)
     self.logf.write("\n")
 
 log = None

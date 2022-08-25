@@ -3762,4 +3762,16 @@ description: Special Administrative Accounts
 empty_attr:
 another_emptry_attr:
 ou: Special Users
+atr2: blabla
+another_emptry_attr:
+ou: Special Users
+b64_field:: eSA=
+blank_b64:: IA==
+b64_utf8:: 6oCAYWJjZN60
+b64_str:: c3RyaW5n
+bogus:: prembandiitsnygo
+with_newline:: dGVzdAp0ZXN0Mgo=
+with_tab:: d29yZAl3b3JkCg==
+padded_newlines:: CndvcmQKCg==
+#Last Line
 

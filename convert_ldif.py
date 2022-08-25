@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/bin/env python3
 
 # convert_ldif.py  Scripted conversion of LDIFF files for use when
 #                  migrating from one LDAP server/environment to
@@ -25,7 +25,7 @@
 
 import re
 import yaml
-from sets import Set
+# from sets import Set
 from timeit import default_timer as timer
 import resource
 import base64
@@ -123,11 +123,12 @@ for chunk in read_chunks():
 
   dn=ldif_text.DN(chunk,skip_empty=clean_empty)
 
-  for obj in settings["remove_objects"]:
-    dn.line_filter(lambda l: l.name=="objectClass" and l.value==obj, msg="object filtered out")
-    for atr in settings["remove_objects"][obj]:
-      msgstr = "atribute of '%s' object filtered out" % (obj)
-      dn.line_filter(lambda l: l.name==atr, msg=msgstr)
+  if "remove_objects" in settings:
+    for obj in settings["remove_objects"]:
+      dn.line_filter(lambda l: l.name=="objectClass" and l.value==obj, msg="object filtered out")
+      for atr in settings["remove_objects"][obj]:
+        msgstr = "atribute of '%s' object filtered out" % (obj)
+        dn.line_filter(lambda l: l.name==atr, msg=msgstr)
   
   if "remove_attrs" in settings:
     for attr in settings["remove_attrs"]:

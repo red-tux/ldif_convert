@@ -43,7 +43,6 @@ class Line:
   def dump(self):
     return self.__str__()
 
-
 class Comment(Line):
   pass
 
@@ -53,15 +52,15 @@ class Atribute(Line):
     self.value=value
 
   def __str__(self):
-    if type(self.value) is unicode:
-      return "%s: %s" % (self.name,self.value.encode('utf-8'))
-    else:
+    # if type(self.value) is unicode:
+    #   return "%s: %s" % (self.name,self.value.encode('utf-8'))
+    # else:
       return "%s: %s" % (self.name,self.value)
   
   def dump(self):
-    if type(self.value) is unicode:
-      return "%s:: %s" % (self.name,base64.b64encode(self.value.encode('utf-8')))
-    else:
+    # if type(self.value) is unicode:
+    #   return "%s:: %s" % (self.name,base64.b64encode(self.value.encode('utf-8')))
+    # else:
       return "%s: %s" % (self.name,self.value)
 
 class B64_Atribute(Atribute):
@@ -70,7 +69,6 @@ class B64_Atribute(Atribute):
   
   def dump(self):
     return "%s:: %s" % (self.name,self.value)
-
 
 class DN:
   lines=[]
@@ -116,9 +114,14 @@ class DN:
         return B64_Atribute(atr_name, atr_data)
       else:
         if ldif_logger.log is not None: ldif_logger.log.msg(" Converting base 64 '%s'" % (line))
-        try:
-          atr_data = base64.b64decode(atr_data).decode('utf-8')
-        except UnicodeDecodeError, e:
+
+        # Here we try to perform a decode of the base64 data.  If the resulting string
+        # is one that would normally be printable then we proceed with the non-base64
+        # attribute processing, otherwise we return a base64 object without further
+        # processing.
+        try: 
+          atr_data_dec = base64.b64decode(atr_data).decode('utf-8')
+        except UnicodeDecodeError as e:
           if show_error_msg: print("Error importing '%s' for 'dn: %s'" % (atr_name, self.dn))
           if ldif_logger.log is not None: ldif_logger.log.msg(" Base64 error for atribute '%s'" % (atr_name))
           if ldif_logger.log is not None: ldif_logger.log.msg("  Error message: %s" % str(e))
@@ -127,10 +130,11 @@ class DN:
             if ldif_logger.log is not None: ldif_logger.log.msg("  Inoring error, setting data to base64 and continuing")
             return B64_Atribute(atr_name, atr_data)
 
-        try:
-          atr_data = atr_data.decode('ascii')
-        except UnicodeEncodeError:
-          pass  # the data contains unicode characters, ignore and don't convert
+        if atr_data_dec.isprintable():
+          atr_data = atr_data_dec
+        else:
+          if ldif_logger.log is not None: ldif_logger.log.msg("   Not Converted")
+          return(B64_Atribute(atr_name, atr_data))
 
         line="%s: %s" %(atr_name,atr_data)
         if ldif_logger.log is not None: ldif_logger.log.msg("             result '%s'" % (line))
@@ -166,10 +170,8 @@ class DN:
   def line_filter_helper(self,filterbool,line,msg):
     if filterbool:
       if ldif_logger.log is not None: ldif_logger.log.msg(" %s:  '%s'" % (msg,line))
-
     
     return filterbool
-
 
   def line_filter(self,filterfunc,msg="line filtered out"):
     # Filter test is true for keeping
