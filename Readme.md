@@ -48,3 +48,6 @@ schema_validate:
 | schema_regex | No | A hash of atribute names and find/replace regular expressions to use on the data for the specified atribute.
 | schema_validate | No | A list of atributes and an associated regular expression to be used to perform data validation.  If the data does not pass validation it is deleted. |
 
+# Dependencies
+This package requires the Python library.
+On RHEL systems this can be installed via `yum install PyYAML`
