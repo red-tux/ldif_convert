@@ -41,7 +41,7 @@ stats_interval = 25000
 perf_interval = 10000
 
 #settings=yaml.load(open('settings.yml'),Loader=yaml.FullLoader)
-settings=yaml.load(open('settings.yml'))
+settings=yaml.safe_load(open('settings.yml'))
 outf = open(settings["output_file"],"w")
 
 def read_chunks():
