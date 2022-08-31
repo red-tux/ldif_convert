@@ -5,6 +5,8 @@ text like streaming approach.  Unlike the standard LDIF tools available for pyth
 attempt to load the full LDIF into memory, thus allowing this to be used on masstive exports.
 This is not a purely LDIF approach, or a purely textual approach, but a combination of the two.
 
+By defualt the script loads "settings.yml" as its settings file, however a differnt file can be specified on the command line.
+
 The work done by the script is managed via the settings.yml file.
 
 This is a sample file:

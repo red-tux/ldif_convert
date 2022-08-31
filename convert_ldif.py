@@ -32,6 +32,8 @@ import base64
 from functools import partial
 import ldif_text
 import ldif_logger
+import argparse
+import sys
 
 count = 0
 lines = 0
@@ -41,8 +43,8 @@ stats_interval = 25000
 perf_interval = 10000
 
 #settings=yaml.load(open('settings.yml'),Loader=yaml.FullLoader)
-settings=yaml.safe_load(open('settings.yml'))
-outf = open(settings["output_file"],"w")
+# settings=yaml.safe_load(open('settings.yml'))
+# outf = open(settings["output_file"],"w")
 
 def read_chunks():
   f=open(settings["input_file"],'r',100000)
@@ -110,6 +112,21 @@ def rename_atr(atr_hash, line):
   
   return line
 
+#################
+# Main Entry Point
+#################
+
+parser = argparse.ArgumentParser(description='Converter of ldif files')
+parser.add_argument('settings',nargs='?', default='settings.yml',help='Settings file to load, default: "settings.yml"')
+
+try:
+  args=parser.parse_args()
+except SystemExit as err:
+  if err.code == 2: parser.print_help()
+  sys.exit(err.code)
+
+settings=yaml.safe_load(open(args.settings))
+outf = open(settings["output_file"],"w")
 ldif_logger.log=ldif_logger.Logger(settings["log_file"])
 
 if "IgnoreB64Errors" in settings:
