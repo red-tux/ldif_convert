@@ -94,11 +94,19 @@ def schema_validate(line):
 def rename_atr(atr_hash, line):
   # Ignore plain lines and comments
   if not isinstance(line, ldif_text.Atribute):
-    return line
-  
-  if line.name in atr_hash:
-    ldif_logger.log.msg(" atribute rename '%s' -> '%s'" %(line.name, atr_hash[line.name]))
-    line.name=atr_hash[line.name]
+    return 
+    
+  if settings.get("case_insensitive",False):
+    comp_hash = {}
+    for k,v in atr_hash.items():
+      comp_hash[k.lower()]=v
+    lname = line.name.lower()
+  else:
+    comp_hash = atr_hash
+    lname = line.name
+  if lname in comp_hash:
+    ldif_logger.log.msg(" atribute rename '%s' -> '%s'" %(lname, comp_hash[lname]))
+    line.name=comp_hash[lname]
   
   return line
 
@@ -118,34 +126,55 @@ start_time=timer()
 chunk_start=timer()
 last_lines = 0
 
+if settings.get("case_insensitive",False):
+  ldif_logger.log.msg("Case Insensitive option enabled")
+  comparitor = lambda a,b: a.lower()==b.lower()
+else:
+  ldif_logger.log.msg("Case Insensitive option not found, searches will be case sensitive")
+  comparitor = lambda a,b: a==b
+
 for chunk in read_chunks():
   count += 1
 
   dn=ldif_text.DN(chunk,skip_empty=clean_empty)
 
+  # Stashing for now, intended to allow for renaming a dn suffix globally
+  # for now may be better to leverage schema regex
+  # if "rename_suffix" in settings:
+  #   from_str = "(%s)$" % re.escape(settings['rename_suffix']['from'])
+  #   to_str = settings['rename_suffix']['to']
+  #   new_dn=re.sub(from_str, to_str, dn.dn)
+  #   ldif_logger.log.msg(" Suffix Rename '%s' -> '%s'" %(dn.dn,new_dn))
+  #   dn.dn=new_dn
+
   if "remove_objects" in settings:
     for obj in settings["remove_objects"]:
-      dn.line_filter(lambda l: l.name=="objectClass" and l.value==obj, msg="object filtered out")
+
+      dn.line_filter(lambda l: comparitor(l.name,"objectClass") and comparitor(l.value,obj), msg="object filtered out")
       for atr in settings["remove_objects"][obj]:
         msgstr = "atribute of '%s' object filtered out" % (obj)
-        dn.line_filter(lambda l: l.name==atr, msg=msgstr)
+        dn.line_filter(lambda l: comparitor(l.name,atr), msg=msgstr)
   
   if "remove_attrs" in settings:
-    for attr in settings["remove_attrs"]:
-      dn.line_filter(lambda l: l.name==attr, msg="global atribute filtered out")
+    for attr in settings.get("remove_attrs",[]):
+      dn.line_filter(lambda l: comparitor(l.name,attr), msg="global atribute filtered out")
 
   if "dn_remove_attrs" in settings and dn.dn in settings["dn_remove_attrs"]:
     for attr in settings["dn_remove_attrs"][dn.dn]:
-      dn.line_filter(lambda l: l.name==attr,msg="specific atribute filtered out")
+      dn.line_filter(lambda l: comparitor(l.name,attr), msg="specific atribute filtered out")
 
   if "schema_regex" in settings and settings["schema_regex"] is not None:
     dn.atr_map(schema_regex)
-  
-  if "rename_atrs" in settings and settings["rename_atrs"] is not None:
-    for rename_dn in settings["rename_atrs"]:
+
+  if "rename_atrs" in settings:
+    for attr in settings['rename_atrs']:
+      dn.atr_map(lambda l: rename_atr(settings["rename_atrs"],l))
+
+  if "rename_dn_atrs" in settings and settings["rename_dn_atrs"] is not None:
+    for rename_dn in settings["rename_dn_atrs"]:
       rex=r".*%s$" % (rename_dn)
       if re.match(rex, dn.dn, flags=re.IGNORECASE) is not None:
-        dn.atr_map(lambda l: rename_atr(settings["rename_atrs"][rename_dn],l))
+        dn.atr_map(lambda l: rename_atr(settings["rename_dn_atrs"][rename_dn],l))
 
 
   if "schema_validate" in settings and settings["schema_validate"] is not None:
