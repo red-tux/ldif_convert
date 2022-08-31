@@ -148,6 +148,7 @@ else:
 
 for chunk in read_chunks():
   count += 1
+  skip_dn = False
 
   dn=ldif_text.DN(chunk,skip_empty=clean_empty)
 
@@ -159,6 +160,17 @@ for chunk in read_chunks():
   #   new_dn=re.sub(from_str, to_str, dn.dn)
   #   ldif_logger.log.msg(" Suffix Rename '%s' -> '%s'" %(dn.dn,new_dn))
   #   dn.dn=new_dn
+
+  if "remove_dn_suffix" in settings:
+    for suffix in settings['remove_dn_suffix']:
+      rex=r".*%s$" % (re.escape(suffix))
+      if re.match(rex, dn.dn, flags=re.IGNORECASE) is not None:
+        ldif_logger.log.msg(" Skipping DN: %s" % (dn.dn))
+        skip_dn = True
+        break
+  
+  if skip_dn:
+    continue
 
   if "remove_objects" in settings:
     for obj in settings["remove_objects"]:
@@ -188,7 +200,6 @@ for chunk in read_chunks():
       rex=r".*%s$" % (rename_dn)
       if re.match(rex, dn.dn, flags=re.IGNORECASE) is not None:
         dn.atr_map(lambda l: rename_atr(settings["rename_dn_atrs"][rename_dn],l))
-
 
   if "schema_validate" in settings and settings["schema_validate"] is not None:
     dn.atr_map(schema_validate)

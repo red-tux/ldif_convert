@@ -31,6 +31,8 @@ rename_dn_atrs:
     Description: DescriptioN
 rename_atrs:
   description: DescRiptIon
+remove_dn_suffix:
+  - ou=badgroup,dc=example,dc=com
 dn_remove_attrs:
   uid=tlabonte,ou=People,dc=example,dc=com:
     - facsimiletelephonenumber
@@ -53,6 +55,7 @@ schema_validate:
 | b64_no_convert | No | A list of atributes which it will not attempt to decode into unicode, but will leave as base64 |
 | remove_objects | No | A list of hashes which will be used to filter out Objects and their associated atributes when found. |
 | remove_attrs | No | Atributes which will be removed globally |
+| remove_dn_suffix | No | List of suffixes to look for in the DNs which will be skipped/not processed. |
 | dn_remove_attrs | No | Atributes which will be removed when the specified DN is found |
 | rename_dn_atrs | No | Attributes will be renamed when the specified DN is found |
 | rename_atrs | No | Attributes will be renamed globally when found |
