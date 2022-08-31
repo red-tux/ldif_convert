@@ -1,0 +1,42 @@
+input_file: openldap_out.ldif
+output_file: test_out.ldif
+log_file: test_log.out
+case_insensitive: yes
+clean_empty: all
+remove_attrs:
+  - entryCSN
+  - contextCSN
+  - entryUUID
+  - pwdChangedTime
+  - pwdAccountLockedTime
+  - pwdFailureTime
+  - pwdHistory
+  - pwdGraceUseTime
+  - pwdReset
+  - pwdPolicySubEntry
+remove_objects:
+  pwdPolicy:
+  - pwdAttribute
+  - pwdMinAge
+  - pwdMaxAge
+  - pwdInHistory
+  - pwdCheckQuality
+  - pwdMinLength
+  - pwdExpireWarning
+  - pwdGraceAuthNLimit
+  - pwdLockout
+  - pwdLockoutDuration
+  - pwdMaxFailure
+  - pwdFailureCountInterval
+  - pwdMustChange
+  - pwdAllowUserChange
+  - pwdSafeModify
+  pwdPolicyChecker:
+  - pwdCheckModule
+schema_regex:
+  modifiersName:
+    find: cn=Manager,dc=example,dc=com$
+    replace: cn=Directory Manager
+  creatorsName:
+    find: cn=Manager,dc=example,dc=com$
+    replace: cn=Directory Manager
