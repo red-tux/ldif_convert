@@ -1,7 +1,8 @@
 # ldif_logger.py  Logging module for use by the ldif_text module
 #
 # Copyright (C) 2019  Red Hat
-# Author:  Andrew Nelson anelson@redhat.com
+#               2022  Andrew Nelson
+# Author:  Andrew Nelson nelsonab@red-tux.net
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
