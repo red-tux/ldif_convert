@@ -40,6 +40,10 @@ schema_regex:
   timestamp:
     find: (\d+)z
     replace: \1Z
+  creationTime:
+    find: (\d+)z
+    replace: \1Z
+    rename_atr: createTimestamp
 schema_validate:
   timestamp: ^\d+Z$
 ```
@@ -59,7 +63,7 @@ schema_validate:
 | dn_remove_attrs | No | Atributes which will be removed when the specified DN is found |
 | rename_dn_atrs | No | Attributes will be renamed when the specified DN is found |
 | rename_atrs | No | Attributes will be renamed globally when found |
-| schema_regex | No | A hash of atribute names and find/replace regular expressions to use on the data for the specified atribute.
+| schema_regex | No | A hash of atribute names and find/replace regular expressions to use on the data for the specified atribute.  In addition if a regex is performed the attribute can be renamed to 'rename_atr' if needed. |
 | schema_validate | No | A list of atributes and an associated regular expression to be used to perform data validation.  If the data does not pass validation it is deleted. |
 
 # Dependencies

@@ -71,6 +71,8 @@ def schema_regex(line):
     new_val=re.sub(atr["find"], atr["replace"],line.value)
     ldif_logger.log.msg(" Schema regex '%s'  '%s' -> '%s'" %(line.name,line.value,new_val))
     line.value=new_val
+    if "rename_atr" in atr:
+      line.name = atr['rename_atr']
   return line
 
 def schema_validate(line):
