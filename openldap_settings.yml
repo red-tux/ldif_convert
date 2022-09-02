@@ -1,3 +1,5 @@
+# Example Settings file for converting OpenLDAP
+# LDIF dumps into one for RHDS to import.
 input_file: openldap_out.ldif
 output_file: test_out.ldif
 log_file: test_log.out
@@ -10,10 +12,10 @@ remove_attrs:
   - pwdChangedTime
   - pwdAccountLockedTime
   - pwdFailureTime
-  - pwdHistory
   - pwdGraceUseTime
   - pwdReset
   - pwdPolicySubEntry
+#  - pwdHistory
 remove_objects:
   pwdPolicy:
   - pwdAttribute
@@ -34,6 +36,10 @@ remove_objects:
   pwdPolicyChecker:
   - pwdCheckModule
 schema_regex:
+  pwdHistory:
+    find: (\d+Z)#1\.3\.6\.1\.4\.1\.1466\.115\.121\.1\.40#\d+#(.*)$
+    replace: \1\2
+    rename_atr: passwordHistory
   modifiersName:
     find: cn=Manager,dc=example,dc=com$
     replace: cn=Directory Manager
